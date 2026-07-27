@@ -4,8 +4,9 @@ import { historyStorage } from './storageHistory.js';
 import { storage } from './storage.js';
 
 export class Scheduler {
-  constructor(bot, intervalMinutes = 10) {
+  constructor(bot, intervalMinutes = 3) {
     this.bot = bot;
+    this.intervalMinutes = intervalMinutes;
     this.intervalMs = intervalMinutes * 60 * 1000;
     this.timer = null;
     this.isRunning = false;

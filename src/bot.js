@@ -55,6 +55,7 @@ export function createBot(token, scheduler = null) {
 
   // Command /monitors
   bot.command('monitors', async (ctx) => {
+    const intervalMins = scheduler?.intervalMinutes || parseInt(process.env.SCAN_INTERVAL_MINUTES || '3', 10);
     const text = 
       `📡 <b>目前監控平台清單 (戰鬥陀螺 X)</b>\n\n` +
       `🛍️ <b>電商購物網：</b>\n` +
@@ -67,7 +68,7 @@ export function createBot(token, scheduler = null) {
       `💬 <b>社群與二手買賣：</b>\n` +
       `• Threads 關鍵字動態\n` +
       `• Facebook 社團/粉專貼文\n\n` +
-      `⏱️ <b>掃描頻率：</b> 每 10 分鐘自動巡檢`;
+      `⏱️ <b>掃描頻率：</b> 每 ${intervalMins} 分鐘自動巡檢`;
 
     await ctx.reply(text, { parse_mode: 'HTML' });
   });

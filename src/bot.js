@@ -27,7 +27,7 @@ export function createBot(token, scheduler = null) {
     });
 
     const message = 
-      `👋 嗨！<b>${name}</b>，歡迎使用戰鬥陀螺 X 基礎推播機器人！\n\n` +
+      `👋 嗨！<b>${name}</b>，歡迎使用唐吉軻德 Threads 推播機器人！\n\n` +
       `✅ 已自動為您啟用 Threads 貼文推播訂閱。\n` +
       `🆔 您的 Chat ID 為：<code>${chatId}</code>\n\n` +
       `可使用的指令：\n` +
@@ -43,7 +43,7 @@ export function createBot(token, scheduler = null) {
 
   // Command /check (Manual scan trigger)
   bot.command('check', async (ctx) => {
-    await ctx.reply('🔎 收到手動觸發請求，正在即時檢索 Threads 戰鬥陀螺動態...', { parse_mode: 'HTML' });
+    await ctx.reply('🔎 收到手動觸發請求，正在即時檢索 Threads 唐吉軻德動態...', { parse_mode: 'HTML' });
     if (scheduler) {
       const items = await scheduler.getLatestItems(5);
       if (items.length > 0) {

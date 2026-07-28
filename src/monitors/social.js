@@ -130,36 +130,47 @@ export async function checkThreads() {
         const posts = await page.evaluate(() => {
           const found = [];
 
-          // Every Threads post link contains /post/ in the href
+          // ─── Strategy: for each unique /post/ link (no sub-paths),
+          //   find the nearest ancestor that wraps ONE post (has exactly 1 <time> child)
+          //   and grab innerText from it.
           const anchors = Array.from(document.querySelectorAll('a[href*="/post/"]'));
 
           for (const a of anchors) {
             const href = a.href || '';
-
-            // ① Skip sub-paths like /post/xxx/media or /post/xxx/likers
             const postId = href.split('/post/')[1] || '';
+            // Skip sub-paths (/media, /likers, etc.)
             if (!postId || postId.includes('/')) continue;
 
-            // ② Extract @username from URL
             const authorMatch = href.match(/\/@([^/]+)\/post\//);
             const author = authorMatch ? authorMatch[1] : '未知用戶';
 
-            // ③ Walk UP the DOM until we find the element that contains a <time>
-            //    That element is the individual post card.
+            // Walk UP: find smallest ancestor with exactly 1 <time> AND enough text to be a post card
             let card = a.parentElement;
             let timeEl = null;
-            for (let i = 0; i < 20 && card && card !== document.body; i++) {
-              timeEl = card.querySelector('time');
-              if (timeEl) break;
+            for (let i = 0; i < 25 && card && card !== document.body; i++) {
+              const times = card.querySelectorAll('time');
+              const textLen = (card.innerText || '').length;
+              if (times.length === 1 && textLen > 30) {
+                timeEl = times[0];
+                break;
+              }
               card = card.parentElement;
             }
 
-            if (!timeEl || !card) continue; // no card found → skip
+            if (!timeEl || !card) continue;
 
-            // ④ Extract text and date from the card
-            const rawText = (card.innerText || '').replace(/\s+/g, ' ').trim();
-            const datetime =
-              timeEl.getAttribute('datetime') || timeEl.innerText || '';
+            const datetime = timeEl.getAttribute('datetime') || timeEl.innerText || '';
+
+            // lines order: [username, date, ...content lines..., noise (翻譯/numbers)]
+            const rawLines = (card.innerText || '')
+              .split('\n')
+              .map(l => l.trim())
+              .filter(l => l.length > 0);
+
+            // Skip first 2 lines (username + date), then remove pure numeric / UI noise
+            const NOISE = /^(\d+|翻譯|顯示更多|更多|查看|按讚|留言|分享|回覆|篩選|最新|無法提供此內容)$/;
+            const contentLines = rawLines.slice(2).filter(l => !NOISE.test(l));
+            const rawText = contentLines.join(' ').replace(/\s+/g, ' ').trim();
 
             if (!found.some(f => f.href === href)) {
               found.push({ href, author, text: rawText.slice(0, 300), datetime });
@@ -169,17 +180,17 @@ export async function checkThreads() {
           return found;
         });
 
+
         console.log(`[Threads] "${query}" → ${posts.length} posts`);
 
         for (const p of posts) {
           if (!seenUrls.has(p.href)) {
             seenUrls.add(p.href);
-            const cleanText = cleanThreadsText(p.text);
             const ts = parseThreadsDate(p.datetime);
             results.push({
               id: `threads_${p.href}`,
-              title: `@${p.author}: ${cleanText || '(點擊查看貼文)'}`.slice(0, 150),
-              price: cleanText.slice(0, 100) || 'Threads 最新貼文',
+              title: `@${p.author}: ${p.text || '(點擊查看貼文)'}`.slice(0, 150),
+              price: p.text.slice(0, 100) || 'Threads 最新貼文',
               url: p.href,
               platform: 'Threads',
               category: '社群與二手面交',

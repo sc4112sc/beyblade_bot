@@ -2,7 +2,12 @@ import fs from 'fs';
 import puppeteer from 'puppeteer';
 import { fetchText } from './base.js';
 
-const KEYWORDS = ['戰鬥陀螺', 'Beyblade', 'BX-', 'UX-', 'CX-', '二手', '面交', '預購', '限定', '補貨', '出清', '交易', '收', '售'];
+const KEYWORDS = [
+  '戰鬥陀螺', '陀螺', 'beyblade',
+  'ux', 'cx', 'bx',
+  'ux-', 'cx-', 'bx-',
+  '二手', '面交', '預購', '限定', '補貨', '出清', '交易', '收', '售'
+];
 
 function isRelevantTitle(title = '') {
   if (!title) return false;
@@ -41,7 +46,10 @@ async function getBrowser() {
  * Direct Puppeteer search on Threads (threads.net/search?q=...) across multiple trading keywords
  */
 export async function checkThreads() {
-  const queries = ['戰鬥陀螺 面交', '戰鬥陀螺 二手', '戰鬥陀螺 X', '戰鬥陀螺 出清', '戰鬥陀螺 預購'];
+  const queries = [
+    '戰鬥陀螺 面交', '戰鬥陀螺 二手', '戰鬥陀螺 X', '戰鬥陀螺 出清', '戰鬥陀螺 預購',
+    '陀螺 面交', 'UX 面交', 'BX 面交', 'CX 面交'
+  ];
   const allPosts = [];
 
   try {
@@ -118,7 +126,11 @@ export async function checkFacebook() {
     'site:facebook.com 戰鬥陀螺 二手 when:1d',
     'site:facebook.com 戰鬥陀螺 出清 when:1d',
     'site:facebook.com 戰鬥陀螺 X when:1d',
-    'site:facebook.com 戰鬥陀螺 預購 when:1d'
+    'site:facebook.com 戰鬥陀螺 預購 when:1d',
+    'site:facebook.com 陀螺 面交 when:1d',
+    'site:facebook.com UX 面交 when:1d',
+    'site:facebook.com BX 面交 when:1d',
+    'site:facebook.com CX 面交 when:1d'
   ];
 
   const allItems = [];

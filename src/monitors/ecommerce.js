@@ -1,6 +1,10 @@
 import { fetchText } from './base.js';
 
-const KEYWORDS = ['戰鬥陀螺', 'Beyblade', 'BX-', 'UX-', 'CX-', '陀螺'];
+const KEYWORDS = [
+  '戰鬥陀螺', '陀螺', 'beyblade',
+  'ux', 'cx', 'bx',
+  'ux-', 'cx-', 'bx-'
+];
 
 function isRelevantTitle(title = '') {
   if (!title) return false;

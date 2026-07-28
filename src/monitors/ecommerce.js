@@ -24,6 +24,10 @@ async function fetchRssQuery(query, platformName, category) {
     if (titleMatch && linkMatch) {
       const title = titleMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
       const rawUrl = linkMatch[1].trim();
+      const pubDateMatch = content.match(/<pubDate>([\s\S]*?)<\/pubDate>/i);
+      const pubDateStr = pubDateMatch ? pubDateMatch[1].trim() : '';
+      const publishedAt = pubDateStr ? new Date(pubDateStr).getTime() : Date.now();
+
       if (isRelevantTitle(title)) {
         const id = `${platformName}_${rawUrl.split('/').pop() || title}`;
         items.push({
@@ -32,7 +36,9 @@ async function fetchRssQuery(query, platformName, category) {
           price: '最新上架/商品資訊',
           url: rawUrl,
           platform: platformName,
-          category
+          category,
+          pubDateStr,
+          publishedAt
         });
       }
     }

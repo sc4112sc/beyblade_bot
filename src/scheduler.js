@@ -76,20 +76,11 @@ export class Scheduler {
         checkAllEcommerce()
       ]);
 
-      const threadsItems = socialItems.filter(i => i.platform === 'Threads 社群');
-      const fbItems = socialItems.filter(i => i.platform.includes('Facebook'));
-      const otherSocial = socialItems.filter(i => i.platform !== 'Threads 社群' && !i.platform.includes('Facebook'));
+      const allItems = [...socialItems, ...ecomItems];
+      // Sort strictly by publishedAt timestamp descending (newest post time first)
+      allItems.sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
 
-      const interleaved = [];
-      const maxLen = Math.max(threadsItems.length, fbItems.length, ecomItems.length, otherSocial.length);
-      for (let i = 0; i < maxLen; i++) {
-        if (threadsItems[i]) interleaved.push(threadsItems[i]);
-        if (fbItems[i]) interleaved.push(fbItems[i]);
-        if (ecomItems[i]) interleaved.push(ecomItems[i]);
-        if (otherSocial[i]) interleaved.push(otherSocial[i]);
-      }
-
-      return interleaved.slice(0, limit);
+      return allItems.slice(0, limit);
     } catch (err) {
       console.error('[Scheduler getLatestItems Error]:', err.message);
       return [];
@@ -116,6 +107,8 @@ export class Scheduler {
       ]);
 
       const allItems = [...ecomItems, ...socialItems];
+      // Sort strictly by publishedAt timestamp descending (newest post time first)
+      allItems.sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
       console.log(`📊 [Scheduler] Found total ${allItems.length} relevant items/posts.`);
 
       // 2. Filter new unseen items

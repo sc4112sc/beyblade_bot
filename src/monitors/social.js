@@ -66,13 +66,15 @@ export async function checkThreads() {
             if (href.includes('/post/')) {
               const author = href.split('/@')[1]?.split('/')[0] || 'Threads 用戶';
               let parent = a;
-              for (let i = 0; i < 4 && parent.parentElement; i++) {
+              for (let i = 0; i < 5 && parent.parentElement; i++) {
                 parent = parent.parentElement;
               }
               const text = (parent.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+              const timeEl = parent.querySelector('time');
+              const pubDateStr = timeEl ? (timeEl.getAttribute('datetime') || timeEl.innerText || '') : '';
 
               if (!items.some(i => i.url === href)) {
-                items.push({ url: href, author, text });
+                items.push({ url: href, author, text, pubDateStr });
               }
             }
           });
@@ -97,7 +99,9 @@ export async function checkThreads() {
       price: 'Threads 今日最新貼文',
       url: p.url,
       platform: 'Threads 社群',
-      category: '社群與二手面交'
+      category: '社群與二手面交',
+      pubDateStr: p.pubDateStr,
+      publishedAt: p.pubDateStr ? new Date(p.pubDateStr).getTime() : Date.now()
     }));
   } catch (err) {
     console.error('[Threads Scraper Error]:', err.message);
@@ -131,10 +135,14 @@ export async function checkFacebook() {
         const content = match[1];
         const titleMatch = content.match(/<title>([\s\S]*?)<\/title>/i);
         const linkMatch = content.match(/<link>([\s\S]*?)<\/link>/i);
+        const pubDateMatch = content.match(/<pubDate>([\s\S]*?)<\/pubDate>/i);
 
         if (titleMatch && linkMatch) {
           const title = titleMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
           const rawUrl = linkMatch[1].trim();
+          const pubDateStr = pubDateMatch ? pubDateMatch[1].trim() : '';
+          const publishedAt = pubDateStr ? new Date(pubDateStr).getTime() : Date.now();
+
           if (isRelevantTitle(title) && !allItems.some(existing => existing.url === rawUrl)) {
             const id = `facebook_${rawUrl.split('/').pop() || title}`;
             allItems.push({
@@ -143,7 +151,9 @@ export async function checkFacebook() {
               price: 'FB 今日最新貼文',
               url: rawUrl,
               platform: 'Facebook 社團/粉專',
-              category: '社群與二手面交'
+              category: '社群與二手面交',
+              pubDateStr,
+              publishedAt
             });
           }
         }
@@ -179,10 +189,14 @@ export async function checkGlobalBeybladeNews() {
         const content = match[1];
         const titleMatch = content.match(/<title>([\s\S]*?)<\/title>/i);
         const linkMatch = content.match(/<link>([\s\S]*?)<\/link>/i);
+        const pubDateMatch = content.match(/<pubDate>([\s\S]*?)<\/pubDate>/i);
 
         if (titleMatch && linkMatch) {
           const title = titleMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
           const rawUrl = linkMatch[1].trim();
+          const pubDateStr = pubDateMatch ? pubDateMatch[1].trim() : '';
+          const publishedAt = pubDateStr ? new Date(pubDateStr).getTime() : Date.now();
+
           if (isRelevantTitle(title) && !allItems.some(existing => existing.url === rawUrl)) {
             const id = `global_news_${rawUrl.split('/').pop() || title}`;
             allItems.push({
@@ -191,7 +205,9 @@ export async function checkGlobalBeybladeNews() {
               price: '發售情報/快訊',
               url: rawUrl,
               platform: '全網快訊',
-              category: '最新發售/情報'
+              category: '最新發售/情報',
+              pubDateStr,
+              publishedAt
             });
           }
         }
@@ -214,17 +230,13 @@ export async function checkAllSocial() {
     checkGlobalBeybladeNews()
   ]);
 
-  const threadsItems = results[0].status === 'fulfilled' && Array.isArray(results[0].value) ? results[0].value : [];
-  const fbItems = results[1].status === 'fulfilled' && Array.isArray(results[1].value) ? results[1].value : [];
-  const newsItems = results[2].status === 'fulfilled' && Array.isArray(results[2].value) ? results[2].value : [];
+  const allItems = [];
+  results.forEach(res => {
+    if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+      allItems.push(...res.value);
+    }
+  });
 
-  const interleaved = [];
-  const maxLen = Math.max(threadsItems.length, fbItems.length, newsItems.length);
-  for (let i = 0; i < maxLen; i++) {
-    if (threadsItems[i]) interleaved.push(threadsItems[i]);
-    if (fbItems[i]) interleaved.push(fbItems[i]);
-    if (newsItems[i]) interleaved.push(newsItems[i]);
-  }
-
-  return interleaved;
+  // Sort strictly by publishedAt descending (newest post time first)
+  return allItems.sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
 }

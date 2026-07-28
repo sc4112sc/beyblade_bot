@@ -54,16 +54,13 @@ async function getBrowser() {
  * Direct Puppeteer search on Threads (threads.net/search?q=...) across dynamically generated matrix queries
  */
 export async function checkThreads() {
+  // Use 5 most effective queries to keep total time under 60s
   const queries = [
-    '出售二手陀螺',
     '二手陀螺',
     '陀螺 面交',
-    '陀螺 出清',
     '戰鬥陀螺 面交',
-    '戰鬥陀螺 二手',
     'UX 面交',
-    'CX 面交',
-    'BX 面交'
+    'CX 面交'
   ];
   const allPosts = [];
 
@@ -78,8 +75,9 @@ export async function checkThreads() {
     for (const query of queries) {
       try {
         const searchUrl = `https://www.threads.net/search?q=${encodeURIComponent(query)}&serp_type=recent`;
-        await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
-        await new Promise(r => setTimeout(r, 2000));
+        // Must use networkidle2 — Threads is a React SPA; domcontentloaded only gives empty HTML skeleton
+        await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 20000 });
+        await new Promise(r => setTimeout(r, 3500));
 
         const posts = await page.evaluate(() => {
           const items = [];

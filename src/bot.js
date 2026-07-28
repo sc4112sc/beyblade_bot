@@ -54,6 +54,11 @@ export function createBot(token, scheduler = null) {
         await ctx.reply(`✅ 檢索完成！以上為為您呈現的 5 筆最新資訊。`, { parse_mode: 'HTML' });
       } else {
         await ctx.reply('✨ 目前暫無最新資訊。', { parse_mode: 'HTML' });
+        import('fs').then(fs => {
+          if (fs.existsSync('debug_screenshot.png')) {
+            ctx.replyWithPhoto({ source: 'debug_screenshot.png' }, { caption: '🛠️ 這是機器人在雲端伺服器上看到的 Threads 實際網頁畫面。' }).catch(console.error);
+          }
+        });
       }
     } else {
       await ctx.reply('⚠️ 排程器服務尚未就緒。', { parse_mode: 'HTML' });

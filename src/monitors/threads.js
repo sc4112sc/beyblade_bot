@@ -128,6 +128,13 @@ export async function checkThreads() {
           return found;
         });
 
+        if (posts.length === 0) {
+          try {
+            await page.screenshot({ path: 'debug_screenshot.png', fullPage: true });
+            console.log('[Threads] No posts found, saved debug_screenshot.png');
+          } catch(e) {}
+        }
+
         for (const p of posts) {
           if (!seenUrls.has(p.href)) {
             seenUrls.add(p.href);

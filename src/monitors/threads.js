@@ -2,29 +2,16 @@ import puppeteer from 'puppeteer';
 import fs from 'fs';
 
 const THREADS_QUERIES = [
-  '戰鬥陀螺',
-  'Beyblade',
-  '陀螺',
-  'UX',
-  'CX',
-  'BX'
+  '唐吉軻德'
 ];
 
-const BEYBLADE_KEYWORDS = [
-  '陀螺', '戰鬥陀螺', 'beyblade',
-  '黑龍', '青龍', '白虎', '朱雀', '玄武', '天照', '月讀'
+const TARGET_KEYWORDS = [
+  '唐吉軻德', '唐吉', 'donki'
 ];
 
-function isBeyblade(text = '') {
+function isValidPost(text = '') {
   const lower = text.toLowerCase();
-  if (BEYBLADE_KEYWORDS.some(k => lower.includes(k))) return true;
-  
-  // Match product codes like CX-09, UX 04, BX12, etc.
-  if (/\b[UBC]X[-\s]*\d{2}\b/i.test(text)) return true;
-  // Match explicitly mentioned series
-  if (/\b[UBC]X\s*(系列|世代)\b/i.test(text)) return true;
-
-  return false;
+  return TARGET_KEYWORDS.some(k => lower.includes(k));
 }
 
 function parseThreadsDate(str = '') {
@@ -90,10 +77,9 @@ export async function checkThreads() {
       const searchUrl = `https://www.threads.net/search?q=${encodeURIComponent(query)}&serp_type=recent`;
 
       try {
-        await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 22000 });
-        await new Promise(r => setTimeout(r, 2000));
+        await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+        await new Promise(r => setTimeout(r, 4000));
         
-        // Scroll down to load more items
         for (let s = 0; s < 4; s++) {
           await page.evaluate(() => window.scrollBy(0, 1500));
           await new Promise(r => setTimeout(r, 1500));
@@ -152,7 +138,7 @@ export async function checkThreads() {
               price: p.text.slice(0, 100) || 'Threads 最新貼文',
               url: p.href,
               platform: 'Threads',
-              category: '社群與二手面交',
+              category: '唐吉軻德最新貼文',
               pubDateStr: p.datetime,
               publishedAt: ts
             });
@@ -168,11 +154,10 @@ export async function checkThreads() {
     if (page) await page.close().catch(() => {});
   }
 
-  // Filter valid Beyblade posts within last 7 days
   const now = Date.now();
   const validResults = results.filter(r => {
     if ((now - r.publishedAt) > 7 * 86400000) return false;
-    if (!isBeyblade(r.title) && !isBeyblade(r.price)) return false;
+    if (!isValidPost(r.title) && !isValidPost(r.price)) return false;
     return true;
   });
 

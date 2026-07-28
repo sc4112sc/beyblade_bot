@@ -76,11 +76,22 @@ export class Scheduler {
         checkAllEcommerce()
       ]);
 
-      const allItems = [...socialItems, ...ecomItems];
-      // Sort strictly by publishedAt timestamp descending (newest post time first)
-      allItems.sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
+      // Sort each group independently by timestamp
+      const sortByTime = arr =>
+        [...arr].sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
 
-      return allItems.slice(0, limit);
+      const social = sortByTime(socialItems);
+      const ecom   = sortByTime(ecomItems);
+
+      // Interleave: 1 social, 1 ecom, 1 social, 1 ecom ...
+      const merged = [];
+      const maxLen = Math.max(social.length, ecom.length);
+      for (let i = 0; i < maxLen && merged.length < limit * 2; i++) {
+        if (social[i]) merged.push(social[i]);
+        if (ecom[i])   merged.push(ecom[i]);
+      }
+
+      return merged.slice(0, limit);
     } catch (err) {
       console.error('[Scheduler getLatestItems Error]:', err.message);
       return [];

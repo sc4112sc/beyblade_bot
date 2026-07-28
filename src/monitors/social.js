@@ -35,6 +35,51 @@ function isBeyblade(text = '') {
   return BEYBLADE_KEYWORDS.some(k => lower.includes(k.toLowerCase()));
 }
 
+/**
+ * Convert Threads date string to Unix ms timestamp.
+ * Threads shows either:
+ *   - ISO-like: "2026-7-20" or "2026-07-20T08:30:00Z"
+ *   - Relative:  "3天", "14小時", "25分鐘", "剛剛"
+ */
+function parseThreadsDate(str = '') {
+  if (!str) return Date.now();
+  const s = str.trim();
+
+  // ISO / date-like  ("2026-7-20", "2026-07-28T...")
+  if (/^\d{4}/.test(s)) {
+    const ts = new Date(s).getTime();
+    return isNaN(ts) ? Date.now() : ts;
+  }
+
+  const now = Date.now();
+  // Relative: "N天", "N小時", "N分鐘"
+  const dayMatch   = s.match(/(\d+)天/);
+  const hourMatch  = s.match(/(\d+)小時/);
+  const minMatch   = s.match(/(\d+)分/);
+  if (dayMatch)   return now - Number(dayMatch[1])   * 86400000;
+  if (hourMatch)  return now - Number(hourMatch[1])  * 3600000;
+  if (minMatch)   return now - Number(minMatch[1])   * 60000;
+
+  // 「剛剛」or any unknown → treat as now
+  return now;
+}
+
+/**
+ * Strip leading date/number noise from Threads card innerText.
+ * Card text typically starts with: "2026-7-20 不玩了，二手陀螺 ..." or "3天 \n 內容"
+ */
+function cleanThreadsText(raw = '') {
+  // Remove leading date-like or relative-time prefix
+  return raw
+    .replace(/^\d{4}-\d{1,2}-\d{1,2}\s*/, '')   // "2026-7-20 "
+    .replace(/^\d+天\s*/,    '')                   // "3天 "
+    .replace(/^\d+小時\s*/,  '')                   // "14小時 "
+    .replace(/^\d+分鐘?\s*/, '')                   // "25分鐘 "
+    .replace(/^剛剛\s*/,     '')                   // "剛剛 "
+    .trim();
+}
+
+
 let _browser = null;
 
 async function getBrowser() {
@@ -129,15 +174,17 @@ export async function checkThreads() {
         for (const p of posts) {
           if (!seenUrls.has(p.href)) {
             seenUrls.add(p.href);
+            const cleanText = cleanThreadsText(p.text);
+            const ts = parseThreadsDate(p.datetime);
             results.push({
               id: `threads_${p.href}`,
-              title: `@${p.author}: ${p.text || '(點擊查看貼文)'}`.slice(0, 150),
-              price: p.text.slice(0, 100) || 'Threads 最新貼文',
+              title: `@${p.author}: ${cleanText || '(點擊查看貼文)'}`.slice(0, 150),
+              price: cleanText.slice(0, 100) || 'Threads 最新貼文',
               url: p.href,
               platform: 'Threads',
               category: '社群與二手面交',
               pubDateStr: p.datetime,
-              publishedAt: p.datetime ? new Date(p.datetime).getTime() : Date.now()
+              publishedAt: ts
             });
           }
         }

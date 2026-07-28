@@ -2,21 +2,29 @@ import puppeteer from 'puppeteer';
 import fs from 'fs';
 
 const THREADS_QUERIES = [
-  '二手陀螺',
-  '陀螺 面交',
-  '戰鬥陀螺 面交',
-  'UX 面交',
-  'CX 面交'
+  '戰鬥陀螺',
+  'Beyblade',
+  '陀螺',
+  'UX',
+  'CX',
+  'BX'
 ];
 
 const BEYBLADE_KEYWORDS = [
-  '陀螺', '戰鬥陀螺', 'Beyblade',
-  'UX', 'CX', 'BX', '黑龍', '青龍', '白虎', '朱雀', '玄武', '天照', '月讀'
+  '陀螺', '戰鬥陀螺', 'beyblade',
+  '黑龍', '青龍', '白虎', '朱雀', '玄武', '天照', '月讀'
 ];
 
 function isBeyblade(text = '') {
   const lower = text.toLowerCase();
-  return BEYBLADE_KEYWORDS.some(k => lower.includes(k.toLowerCase()));
+  if (BEYBLADE_KEYWORDS.some(k => lower.includes(k))) return true;
+  
+  // Match product codes like CX-09, UX 04, BX12, etc.
+  if (/\b[UBC]X[-\s]*\d{2}\b/i.test(text)) return true;
+  // Match explicitly mentioned series
+  if (/\b[UBC]X\s*(系列|世代)\b/i.test(text)) return true;
+
+  return false;
 }
 
 function parseThreadsDate(str = '') {
@@ -83,7 +91,13 @@ export async function checkThreads() {
 
       try {
         await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 22000 });
-        await new Promise(r => setTimeout(r, 3000));
+        await new Promise(r => setTimeout(r, 2000));
+        
+        // Scroll down to load more items
+        for (let s = 0; s < 4; s++) {
+          await page.evaluate(() => window.scrollBy(0, 1500));
+          await new Promise(r => setTimeout(r, 1500));
+        }
 
         const posts = await page.evaluate(() => {
           const found = [];
@@ -127,8 +141,6 @@ export async function checkThreads() {
           }
           return found;
         });
-
-        console.log(`[Threads] "${query}" → ${posts.length} posts`);
 
         for (const p of posts) {
           if (!seenUrls.has(p.href)) {

@@ -156,7 +156,7 @@ export async function checkThreads() {
 
   const now = Date.now();
   const validResults = results.filter(r => {
-    if ((now - r.publishedAt) > 7 * 86400000) return false;
+    if ((now - r.publishedAt) > 365 * 86400000) return false;
     if (!isValidPost(r.title) && !isValidPost(r.price)) return false;
     return true;
   });

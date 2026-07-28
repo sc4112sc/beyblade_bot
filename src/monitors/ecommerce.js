@@ -41,27 +41,27 @@ async function fetchRssQuery(query, platformName, category) {
 }
 
 export async function checkMomo() {
-  return await fetchRssQuery('site:momoshop.com.tw 戰鬥陀螺 when:3d', 'momo購物網', '電商購物');
+  return await fetchRssQuery('site:momoshop.com.tw 戰鬥陀螺 when:1d', 'momo購物網', '電商購物');
 }
 
 export async function checkStepStone() {
-  return await fetchRssQuery('site:stepstone.com.tw 戰鬥陀螺 when:3d', '墊腳石購物網', '電商購物');
+  return await fetchRssQuery('site:stepstone.com.tw 戰鬥陀螺 when:1d', '墊腳石購物網', '電商購物');
 }
 
 export async function checkEslite() {
-  return await fetchRssQuery('site:eslite.com 戰鬥陀螺 when:3d', '誠品線上', '電商購物');
+  return await fetchRssQuery('site:eslite.com 戰鬥陀螺 when:1d', '誠品線上', '電商購物');
 }
 
 export async function checkKingstone() {
-  return await fetchRssQuery('site:jyt.com.tw 戰鬥陀螺 when:3d', '金玉堂購物網', '電商購物');
+  return await fetchRssQuery('site:jyt.com.tw 戰鬥陀螺 when:1d', '金玉堂購物網', '電商購物');
 }
 
 export async function checkDonghai() {
-  return await fetchRssQuery('site:ehobby.com.tw 戰鬥陀螺 when:3d', '東海模型', '電商購物');
+  return await fetchRssQuery('site:ehobby.com.tw 戰鬥陀螺 when:1d', '東海模型', '電商購物');
 }
 
 export async function checkToyWorld() {
-  return await fetchRssQuery('site:toyworld.com.tw 戰鬥陀螺 when:3d', 'Toy World', '電商購物');
+  return await fetchRssQuery('site:toyworld.com.tw 戰鬥陀螺 when:1d', 'Toy World', '電商購物');
 }
 
 /**

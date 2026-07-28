@@ -54,7 +54,7 @@ export async function checkThreads() {
 
     for (const query of queries) {
       try {
-        const searchUrl = `https://www.threads.net/search?q=${encodeURIComponent(query)}`;
+        const searchUrl = `https://www.threads.net/search?q=${encodeURIComponent(query)}&serp_type=recent`;
         await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 25000 });
         await new Promise(r => setTimeout(r, 3500));
 
@@ -93,8 +93,8 @@ export async function checkThreads() {
 
     return allPosts.map(p => ({
       id: `threads_${p.url.split('/post/')[1] || p.url}`,
-      title: `[Threads 貼文] @${p.author}: ${p.text || '點擊查看動態內容'}`,
-      price: 'Threads 社群動態/面交',
+      title: `[Threads 最新動態] @${p.author}: ${p.text || '點擊查看動態內容'}`,
+      price: 'Threads 今日最新貼文',
       url: p.url,
       platform: 'Threads 社群',
       category: '社群與二手面交'
@@ -106,15 +106,15 @@ export async function checkThreads() {
 }
 
 /**
- * Direct Facebook recent post search (site:facebook.com ... when:2d) across multiple trading keywords
+ * Direct Facebook recent post search (site:facebook.com ... when:1d) across multiple trading keywords
  */
 export async function checkFacebook() {
   const queries = [
-    'site:facebook.com 戰鬥陀螺 面交 when:2d',
-    'site:facebook.com 戰鬥陀螺 二手 when:2d',
-    'site:facebook.com 戰鬥陀螺 出清 when:2d',
-    'site:facebook.com 戰鬥陀螺 X when:2d',
-    'site:facebook.com 戰鬥陀螺 預購 when:2d'
+    'site:facebook.com 戰鬥陀螺 面交 when:1d',
+    'site:facebook.com 戰鬥陀螺 二手 when:1d',
+    'site:facebook.com 戰鬥陀螺 出清 when:1d',
+    'site:facebook.com 戰鬥陀螺 X when:1d',
+    'site:facebook.com 戰鬥陀螺 預購 when:1d'
   ];
 
   const allItems = [];
@@ -139,8 +139,8 @@ export async function checkFacebook() {
             const id = `facebook_${rawUrl.split('/').pop() || title}`;
             allItems.push({
               id,
-              title: `[FB 社群動態] ${title.replace(/\s*-\s*facebook\.com$/i, '')}`,
-              price: 'FB 最新買賣/面交',
+              title: `[FB 最新買賣] ${title.replace(/\s*-\s*facebook\.com$/i, '')}`,
+              price: 'FB 今日最新貼文',
               url: rawUrl,
               platform: 'Facebook 社團/粉專',
               category: '社群與二手面交'
@@ -157,12 +157,12 @@ export async function checkFacebook() {
 }
 
 /**
- * Global Beyblade news & fast alerts search (recent 2 days) across multiple queries
+ * Global Beyblade news & fast alerts search (recent 24h) across multiple queries
  */
 export async function checkGlobalBeybladeNews() {
   const queries = [
-    '戰鬥陀螺 X 預購 販售 限定 補貨 when:2d',
-    '戰鬥陀螺 面交 二手 出清 販售 when:2d'
+    '戰鬥陀螺 X 預購 販售 限定 補貨 when:1d',
+    '戰鬥陀螺 面交 二手 出清 販售 when:1d'
   ];
 
   const allItems = [];

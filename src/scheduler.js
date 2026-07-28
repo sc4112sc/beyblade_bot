@@ -71,12 +71,25 @@ export class Scheduler {
 
   async getLatestItems(limit = 5) {
     try {
-      const [ecomItems, socialItems] = await Promise.all([
-        checkAllEcommerce(),
-        checkAllSocial()
+      const [socialItems, ecomItems] = await Promise.all([
+        checkAllSocial(),
+        checkAllEcommerce()
       ]);
-      const allItems = [...socialItems, ...ecomItems];
-      return allItems.slice(0, limit);
+
+      const threadsItems = socialItems.filter(i => i.platform === 'Threads 社群');
+      const fbItems = socialItems.filter(i => i.platform.includes('Facebook'));
+      const otherSocial = socialItems.filter(i => i.platform !== 'Threads 社群' && !i.platform.includes('Facebook'));
+
+      const interleaved = [];
+      const maxLen = Math.max(threadsItems.length, fbItems.length, ecomItems.length, otherSocial.length);
+      for (let i = 0; i < maxLen; i++) {
+        if (threadsItems[i]) interleaved.push(threadsItems[i]);
+        if (fbItems[i]) interleaved.push(fbItems[i]);
+        if (ecomItems[i]) interleaved.push(ecomItems[i]);
+        if (otherSocial[i]) interleaved.push(otherSocial[i]);
+      }
+
+      return interleaved.slice(0, limit);
     } catch (err) {
       console.error('[Scheduler getLatestItems Error]:', err.message);
       return [];

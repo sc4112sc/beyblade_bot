@@ -214,12 +214,17 @@ export async function checkAllSocial() {
     checkGlobalBeybladeNews()
   ]);
 
-  const allItems = [];
-  results.forEach(res => {
-    if (res.status === 'fulfilled' && Array.isArray(res.value)) {
-      allItems.push(...res.value);
-    }
-  });
+  const threadsItems = results[0].status === 'fulfilled' && Array.isArray(results[0].value) ? results[0].value : [];
+  const fbItems = results[1].status === 'fulfilled' && Array.isArray(results[1].value) ? results[1].value : [];
+  const newsItems = results[2].status === 'fulfilled' && Array.isArray(results[2].value) ? results[2].value : [];
 
-  return allItems;
+  const interleaved = [];
+  const maxLen = Math.max(threadsItems.length, fbItems.length, newsItems.length);
+  for (let i = 0; i < maxLen; i++) {
+    if (threadsItems[i]) interleaved.push(threadsItems[i]);
+    if (fbItems[i]) interleaved.push(fbItems[i]);
+    if (newsItems[i]) interleaved.push(newsItems[i]);
+  }
+
+  return interleaved;
 }

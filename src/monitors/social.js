@@ -81,29 +81,42 @@ export async function checkThreads() {
 
         const posts = await page.evaluate(() => {
           const items = [];
-          const links = Array.from(document.querySelectorAll('a'));
+          const links = Array.from(document.querySelectorAll('a[href*="/post/"]'));
           links.forEach(a => {
             const href = a.href || '';
-            if (href.includes('/post/') || href.includes('/t/')) {
-              const author = href.split('/@')[1]?.split('/')[0] || 'Threads 用戶';
-              let parent = a;
-              for (let i = 0; i < 6 && parent.parentElement; i++) {
-                parent = parent.parentElement;
-              }
-              const text = (parent.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 120);
-              const timeEl = parent.querySelector('time');
-              const pubDateStr = timeEl ? (timeEl.getAttribute('datetime') || timeEl.innerText || '') : '';
+            // Skip /media sub-links (duplicates), keep only main post links
+            if (!href.includes('/post/') || href.includes('/post/') && href.split('/post/')[1]?.includes('/')) return;
 
-              if (!items.some(i => i.url === href)) {
-                items.push({ url: href, author, text, pubDateStr });
-              }
+            // Extract author from URL: /@username/post/...
+            const author = href.match(/\/@([^/]+)\//)?.[1] || 'Threads用戶';
+
+            // Walk up to find the post container (article or role=article)
+            let container = a;
+            for (let i = 0; i < 10 && container.parentElement; i++) {
+              container = container.parentElement;
+              const role = container.getAttribute('role');
+              const tag = container.tagName?.toLowerCase();
+              if (role === 'article' || tag === 'article') break;
+            }
+
+            const text = (container.innerText || a.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+            const timeEl = container.querySelector('time');
+            const pubDateStr = timeEl ? (timeEl.getAttribute('datetime') || timeEl.innerText || '') : '';
+
+            if (!items.some(i => i.url === href)) {
+              items.push({ url: href, author, text, pubDateStr });
             }
           });
           return items;
         });
 
+        console.log(`[Threads] Query "${query}" found ${posts.length} raw posts`);
+        posts.slice(0, 3).forEach(p => console.log('  ->', p.url, '|', p.text.slice(0, 60)));
+
         posts.forEach(p => {
-          if (isRelevantTitle(p.text) && !allPosts.some(existing => existing.url === p.url)) {
+          // Since our query already contains beyblade keywords, trust the source.
+          // Only skip if post text explicitly indicates it's totally unrelated.
+          if (!allPosts.some(existing => existing.url === p.url)) {
             allPosts.push(p);
           }
         });

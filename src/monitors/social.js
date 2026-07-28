@@ -47,8 +47,9 @@ async function getBrowser() {
  */
 export async function checkThreads() {
   const queries = [
-    '戰鬥陀螺 面交', '戰鬥陀螺 二手', '戰鬥陀螺 X', '戰鬥陀螺 出清', '戰鬥陀螺 預購',
-    '陀螺 面交', 'UX 面交', 'BX 面交', 'CX 面交'
+    '出售二手陀螺', '二手陀螺', '陀螺 面交', '陀螺 出清', '陀螺 二手',
+    '戰鬥陀螺 面交', '戰鬥陀螺 二手', '戰鬥陀螺 出清', '戰鬥陀螺 預購',
+    'CX 面交', 'UX 面交', 'BX 面交', 'CX 出清', 'UX 出清', 'BX 出清'
   ];
   const allPosts = [];
 
@@ -71,10 +72,10 @@ export async function checkThreads() {
           const links = Array.from(document.querySelectorAll('a'));
           links.forEach(a => {
             const href = a.href || '';
-            if (href.includes('/post/')) {
+            if (href.includes('/post/') || href.includes('/t/')) {
               const author = href.split('/@')[1]?.split('/')[0] || 'Threads 用戶';
               let parent = a;
-              for (let i = 0; i < 5 && parent.parentElement; i++) {
+              for (let i = 0; i < 6 && parent.parentElement; i++) {
                 parent = parent.parentElement;
               }
               const text = (parent.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 120);
@@ -102,7 +103,7 @@ export async function checkThreads() {
     await page.close();
 
     return allPosts.map(p => ({
-      id: `threads_${p.url.split('/post/')[1] || p.url}`,
+      id: `threads_${p.url.split('/post/')[1] || p.url.split('/t/')[1] || p.url}`,
       title: `[Threads 最新動態] @${p.author}: ${p.text || '點擊查看動態內容'}`,
       price: 'Threads 今日最新貼文',
       url: p.url,
@@ -128,6 +129,8 @@ export async function checkFacebook() {
     'site:facebook.com 戰鬥陀螺 X when:1d',
     'site:facebook.com 戰鬥陀螺 預購 when:1d',
     'site:facebook.com 陀螺 面交 when:1d',
+    'site:facebook.com 二手陀螺 when:1d',
+    'site:facebook.com 出售二手陀螺 when:1d',
     'site:facebook.com UX 面交 when:1d',
     'site:facebook.com BX 面交 when:1d',
     'site:facebook.com CX 面交 when:1d'

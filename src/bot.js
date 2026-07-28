@@ -44,10 +44,18 @@ export function createBot(token, scheduler = null) {
 
   // Command /check (Manual scan trigger)
   bot.command('check', async (ctx) => {
-    await ctx.reply('🔎 收到手動觸發請求，正在掃描 momo、墊腳石、誠品、金玉堂、東海模型、Toy World、Threads、FB...', { parse_mode: 'HTML' });
+    await ctx.reply('🔎 收到手動觸發請求，正在即時檢索 Threads、FB、各大電商最新戰鬥陀螺動態...', { parse_mode: 'HTML' });
     if (scheduler) {
-      const res = await scheduler.runScan();
-      await ctx.reply(`✅ 掃描完成！發現 ${res.newItemsCount || 0} 筆最新戰鬥陀螺 X 資訊。`, { parse_mode: 'HTML' });
+      const items = await scheduler.getLatestItems(5);
+      if (items.length > 0) {
+        for (const item of items) {
+          const msg = scheduler.formatPushMessage(item);
+          await ctx.reply(msg, { parse_mode: 'HTML', disable_web_page_preview: false });
+        }
+        await ctx.reply(`✅ 檢索完成！以上為為您呈現的 5 筆最新戰鬥陀螺 X 資訊。`, { parse_mode: 'HTML' });
+      } else {
+        await ctx.reply('✨ 目前暫無最新資訊。', { parse_mode: 'HTML' });
+      }
     } else {
       await ctx.reply('⚠️ 排程器服務尚未就緒。', { parse_mode: 'HTML' });
     }

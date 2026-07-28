@@ -33,6 +33,20 @@ export class Scheduler {
     }
   }
 
+  async getLatestItems(limit = 5) {
+    try {
+      const [ecomItems, socialItems] = await Promise.all([
+        checkAllEcommerce(),
+        checkAllSocial()
+      ]);
+      const allItems = [...socialItems, ...ecomItems];
+      return allItems.slice(0, limit);
+    } catch (err) {
+      console.error('[Scheduler getLatestItems Error]:', err.message);
+      return [];
+    }
+  }
+
   async runScan() {
     if (this.isRunning) {
       console.log('⏳ [Scheduler] Scan already in progress, skipping...');
@@ -58,16 +72,39 @@ export class Scheduler {
       // 2. Filter new unseen items
       const subscribers = storage.getAllSubscribers();
       
-      // If history is completely empty on boot, establish baseline (mark seen without pushing)
+      // Check if history is fresh
       const isFreshBoot = historyStorage.seenIds.size === 0;
 
-      for (const item of allItems) {
-        if (!historyStorage.isSeen(item.id)) {
-          if (isFreshBoot) {
-            // First run baseline initialization: mark current items as seen without sending push spam
-            await historyStorage.addSeen(item.id);
-          } else {
-            // Newly discovered item after baseline! Push notification to subscribers
+      if (isFreshBoot) {
+        // Send top 3 freshest items on initial boot
+        const topItems = allItems.slice(0, 3);
+        for (const item of topItems) {
+          if (this.bot && subscribers.length > 0) {
+            const message = this.formatPushMessage(item);
+            for (const sub of subscribers) {
+              try {
+                await this.bot.api.sendMessage(sub.chatId, message, {
+                  parse_mode: 'HTML',
+                  disable_web_page_preview: false
+                });
+                newItemsCount++;
+                this.totalPushed++;
+              } catch (err) {
+                console.error(`[Scheduler Push Error] Failed to send to ${sub.chatId}:`, err.message);
+              }
+            }
+          }
+        }
+
+        // Mark all current items as seen
+        for (const item of allItems) {
+          await historyStorage.addSeen(item.id);
+        }
+
+        console.log(`📌 [Scheduler] Baseline initialized with ${allItems.length} existing items (pushed top 3 freshest). Future scans will push NEW items only.`);
+      } else {
+        for (const item of allItems) {
+          if (!historyStorage.isSeen(item.id)) {
             newItemsCount++;
             this.totalPushed++;
 
@@ -92,11 +129,7 @@ export class Scheduler {
         }
       }
 
-      if (isFreshBoot) {
-        console.log(`📌 [Scheduler] Baseline initialized with ${allItems.length} existing items. Future scans will push NEW items only.`);
-      } else {
-        console.log(`✨ [Scheduler] Scan completed. ${newItemsCount} new item(s) pushed.`);
-      }
+      console.log(`✨ [Scheduler] Scan completed. ${newItemsCount} new item(s) pushed.`);
     } catch (err) {
       console.error('[Scheduler Error] Error during scan:', err);
     } finally {

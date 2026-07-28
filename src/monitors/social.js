@@ -2,17 +2,25 @@ import fs from 'fs';
 import puppeteer from 'puppeteer';
 import { fetchText } from './base.js';
 
-const KEYWORDS = [
-  '戰鬥陀螺', '陀螺', 'beyblade',
-  'ux', 'cx', 'bx',
-  'ux-', 'cx-', 'bx-',
-  '二手', '面交', '預購', '限定', '補貨', '出清', '交易', '收', '售'
-];
+const SUBJECT_KEYWORDS = ['戰鬥陀螺', '陀螺', 'beyblade', 'UX', 'BX', 'CX'];
+const ACTION_KEYWORDS = ['面交', '二手', '出清', '交易', '收', '售', '預購'];
+
+function generateQueryMatrix(prefix = '', suffix = '') {
+  const queries = [];
+  for (const subject of SUBJECT_KEYWORDS) {
+    for (const action of ACTION_KEYWORDS) {
+      queries.push(`${prefix}${subject} ${action}${suffix}`.trim());
+    }
+  }
+  return queries;
+}
+
+const CORE_KEYWORDS = ['戰鬥陀螺', '陀螺', 'beyblade', 'ux', 'cx', 'bx'];
 
 function isRelevantTitle(title = '') {
   if (!title) return false;
   const lower = title.toLowerCase();
-  return KEYWORDS.some(k => lower.includes(k.toLowerCase()));
+  return CORE_KEYWORDS.some(k => lower.includes(k));
 }
 
 let sharedBrowser = null;
@@ -43,14 +51,10 @@ async function getBrowser() {
 }
 
 /**
- * Direct Puppeteer search on Threads (threads.net/search?q=...) across multiple trading keywords
+ * Direct Puppeteer search on Threads (threads.net/search?q=...) across dynamically generated matrix queries
  */
 export async function checkThreads() {
-  const queries = [
-    '出售二手陀螺', '二手陀螺', '陀螺 面交', '陀螺 出清', '陀螺 二手',
-    '戰鬥陀螺 面交', '戰鬥陀螺 二手', '戰鬥陀螺 出清', '戰鬥陀螺 預購',
-    'CX 面交', 'UX 面交', 'BX 面交', 'CX 出清', 'UX 出清', 'BX 出清'
-  ];
+  const queries = generateQueryMatrix();
   const allPosts = [];
 
   try {
@@ -91,7 +95,7 @@ export async function checkThreads() {
         });
 
         posts.forEach(p => {
-          if (!allPosts.some(existing => existing.url === p.url)) {
+          if (isRelevantTitle(p.text) && !allPosts.some(existing => existing.url === p.url)) {
             allPosts.push(p);
           }
         });
@@ -119,22 +123,10 @@ export async function checkThreads() {
 }
 
 /**
- * Direct Facebook recent post search (site:facebook.com ... when:1d) across multiple trading keywords
+ * Direct Facebook recent post search (site:facebook.com ... when:1d) across dynamically generated matrix queries
  */
 export async function checkFacebook() {
-  const queries = [
-    'site:facebook.com 戰鬥陀螺 面交 when:1d',
-    'site:facebook.com 戰鬥陀螺 二手 when:1d',
-    'site:facebook.com 戰鬥陀螺 出清 when:1d',
-    'site:facebook.com 戰鬥陀螺 X when:1d',
-    'site:facebook.com 戰鬥陀螺 預購 when:1d',
-    'site:facebook.com 陀螺 面交 when:1d',
-    'site:facebook.com 二手陀螺 when:1d',
-    'site:facebook.com 出售二手陀螺 when:1d',
-    'site:facebook.com UX 面交 when:1d',
-    'site:facebook.com BX 面交 when:1d',
-    'site:facebook.com CX 面交 when:1d'
-  ];
+  const queries = generateQueryMatrix('site:facebook.com ', ' when:1d');
 
   const allItems = [];
 

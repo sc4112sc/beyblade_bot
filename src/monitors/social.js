@@ -40,7 +40,10 @@ async function getBrowser() {
 /**
  * Direct Puppeteer search on Threads (threads.net/search?q=...)
  */
-export async function checkThreads(query = '戰鬥陀螺 X') {
+export async function checkThreads() {
+  const queries = ['戰鬥陀螺 面交', '戰鬥陀螺 二手', '戰鬥陀螺 X', '戰鬥陀螺 出清'];
+  const allPosts = [];
+
   try {
     const browser = await getBrowser();
     const page = await browser.newPage();
@@ -49,37 +52,49 @@ export async function checkThreads(query = '戰鬥陀螺 X') {
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
     );
 
-    const searchUrl = `https://www.threads.net/search?q=${encodeURIComponent(query)}`;
-    await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-    await new Promise(r => setTimeout(r, 4000));
+    for (const query of queries) {
+      try {
+        const searchUrl = `https://www.threads.net/search?q=${encodeURIComponent(query)}`;
+        await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 25000 });
+        await new Promise(r => setTimeout(r, 3500));
 
-    const posts = await page.evaluate(() => {
-      const items = [];
-      const links = Array.from(document.querySelectorAll('a'));
-      links.forEach(a => {
-        const href = a.href || '';
-        if (href.includes('/post/')) {
-          const author = href.split('/@')[1]?.split('/')[0] || 'Threads 用戶';
-          let parent = a;
-          for (let i = 0; i < 4 && parent.parentElement; i++) {
-            parent = parent.parentElement;
-          }
-          const text = (parent.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+        const posts = await page.evaluate(() => {
+          const items = [];
+          const links = Array.from(document.querySelectorAll('a'));
+          links.forEach(a => {
+            const href = a.href || '';
+            if (href.includes('/post/')) {
+              const author = href.split('/@')[1]?.split('/')[0] || 'Threads 用戶';
+              let parent = a;
+              for (let i = 0; i < 4 && parent.parentElement; i++) {
+                parent = parent.parentElement;
+              }
+              const text = (parent.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 120);
 
-          if (!items.some(i => i.url === href)) {
-            items.push({ url: href, author, text });
+              if (!items.some(i => i.url === href)) {
+                items.push({ url: href, author, text });
+              }
+            }
+          });
+          return items;
+        });
+
+        posts.forEach(p => {
+          if (!allPosts.some(existing => existing.url === p.url)) {
+            allPosts.push(p);
           }
-        }
-      });
-      return items;
-    });
+        });
+      } catch (err) {
+        console.error(`[Threads Query Error: "${query}"]:`, err.message);
+      }
+    }
 
     await page.close();
 
-    return posts.map(p => ({
+    return allPosts.map(p => ({
       id: `threads_${p.url.split('/post/')[1] || p.url}`,
       title: `[Threads 貼文] @${p.author}: ${p.text || '點擊查看動態內容'}`,
-      price: 'Threads 最新貼文',
+      price: 'Threads 最新動態/面交',
       url: p.url,
       platform: 'Threads 社群',
       category: '社群與二手面交'

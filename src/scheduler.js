@@ -57,34 +57,46 @@ export class Scheduler {
 
       // 2. Filter new unseen items
       const subscribers = storage.getAllSubscribers();
+      
+      // If history is completely empty on boot, establish baseline (mark seen without pushing)
+      const isFreshBoot = historyStorage.seenIds.size === 0;
 
       for (const item of allItems) {
         if (!historyStorage.isSeen(item.id)) {
-          newItemsCount++;
-          this.totalPushed++;
+          if (isFreshBoot) {
+            // First run baseline initialization: mark current items as seen without sending push spam
+            await historyStorage.addSeen(item.id);
+          } else {
+            // Newly discovered item after baseline! Push notification to subscribers
+            newItemsCount++;
+            this.totalPushed++;
 
-          // Send push notification if bot & subscribers exist
-          if (this.bot && subscribers.length > 0) {
-            const message = this.formatPushMessage(item);
-            
-            for (const sub of subscribers) {
-              try {
-                await this.bot.api.sendMessage(sub.chatId, message, {
-                  parse_mode: 'HTML',
-                  disable_web_page_preview: false
-                });
-              } catch (err) {
-                console.error(`[Scheduler Push Error] Failed to send to ${sub.chatId}:`, err.message);
+            if (this.bot && subscribers.length > 0) {
+              const message = this.formatPushMessage(item);
+              
+              for (const sub of subscribers) {
+                try {
+                  await this.bot.api.sendMessage(sub.chatId, message, {
+                    parse_mode: 'HTML',
+                    disable_web_page_preview: false
+                  });
+                } catch (err) {
+                  console.error(`[Scheduler Push Error] Failed to send to ${sub.chatId}:`, err.message);
+                }
               }
             }
-          }
 
-          // Mark item as seen
-          await historyStorage.addSeen(item.id);
+            // Mark item as seen
+            await historyStorage.addSeen(item.id);
+          }
         }
       }
 
-      console.log(`✨ [Scheduler] Scan completed. ${newItemsCount} new item(s) pushed.`);
+      if (isFreshBoot) {
+        console.log(`📌 [Scheduler] Baseline initialized with ${allItems.length} existing items. Future scans will push NEW items only.`);
+      } else {
+        console.log(`✨ [Scheduler] Scan completed. ${newItemsCount} new item(s) pushed.`);
+      }
     } catch (err) {
       console.error('[Scheduler Error] Error during scan:', err);
     } finally {
@@ -102,10 +114,10 @@ export class Scheduler {
     const categoryEmoji = item.category === '電商購物' ? '🛍️' : '💬';
     
     return (
-      `🌀 <b>[戰鬥陀螺 X 最新資訊推播]</b>\n\n` +
+      `🌀 <b>[戰鬥陀螺 X 第一手動態推播]</b>\n\n` +
       `📌 <b>標題：</b> <a href="${item.url}">${escapeHtml(item.title)}</a>\n` +
       `${categoryEmoji} <b>來源：</b> ${item.platform} (${item.category})\n` +
-      `💰 <b>價格/類型：</b> <code>${escapeHtml(item.price)}</code>\n\n` +
+      `💰 <b>類型/詳細：</b> <code>${escapeHtml(item.price)}</code>\n\n` +
       `👉 <a href="${item.url}">點此立即前往商品/貼文頁面</a>`
     );
   }

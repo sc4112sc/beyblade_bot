@@ -24,6 +24,7 @@ async function bootstrap() {
   if (token && token !== 'your_telegram_bot_token_here') {
     try {
       // Create temporary bot to bind to scheduler
+      bot = createBot(token, null);
       if (bot) {
         const scanInterval = parseInt(process.env.SCAN_INTERVAL_MINUTES || '3', 10);
         scheduler = new Scheduler(bot, scanInterval); // Check every X minutes (default: 3)

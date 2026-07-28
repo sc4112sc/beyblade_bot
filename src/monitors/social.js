@@ -13,7 +13,7 @@ function isRelevantTitle(title = '') {
 let sharedBrowser = null;
 
 async function getBrowser() {
-  if (sharedBrowser && sharedBrowser.isConnected()) {
+  if (sharedBrowser && sharedBrowser.connected) {
     return sharedBrowser;
   }
 
@@ -79,7 +79,7 @@ export async function checkThreads(query = '戰鬥陀螺 X') {
     return posts.map(p => ({
       id: `threads_${p.url.split('/post/')[1] || p.url}`,
       title: `[Threads 貼文] @${p.author}: ${p.text || '點擊查看動態內容'}`,
-      price: 'Threads 社群動態',
+      price: 'Threads 最新貼文',
       url: p.url,
       platform: 'Threads 社群',
       category: '社群與二手面交'
@@ -91,55 +91,46 @@ export async function checkThreads(query = '戰鬥陀螺 X') {
 }
 
 /**
- * Direct Puppeteer search on Facebook site (site:facebook.com ...)
+ * Direct Facebook recent post search (site:facebook.com ... when:2d)
  */
-export async function checkFacebook(query = '戰鬥陀螺 X 二手 面交 社團') {
-  try {
-    const browser = await getBrowser();
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1280, height: 900 });
-    await page.setUserAgent(
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
-    );
+export async function checkFacebook() {
+  const query = 'site:facebook.com 戰鬥陀螺 X when:2d';
+  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
+  const xml = await fetchText(url);
+  if (!xml) return [];
 
-    const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(`site:facebook.com ${query}`)}`;
-    await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-    await new Promise(r => setTimeout(r, 2000));
+  const items = [];
+  const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+  let match;
+  while ((match = itemRegex.exec(xml)) !== null && items.length < 15) {
+    const content = match[1];
+    const titleMatch = content.match(/<title>([\s\S]*?)<\/title>/i);
+    const linkMatch = content.match(/<link>([\s\S]*?)<\/link>/i);
 
-    const posts = await page.evaluate(() => {
-      const items = [];
-      const links = Array.from(document.querySelectorAll('li.b_algo h2 a'));
-      links.forEach(a => {
-        const href = a.href || '';
-        const title = (a.innerText || '').trim();
-        if (href.includes('facebook.com') && title) {
-          items.push({ url: href, title });
-        }
-      });
-      return items;
-    });
-
-    await page.close();
-
-    return posts.map(p => ({
-      id: `facebook_${p.url.split('facebook.com/')[1] || p.title}`,
-      title: `[Facebook 貼文/社團] ${p.title}`,
-      price: 'FB 社群/二手討論',
-      url: p.url,
-      platform: 'Facebook 社團/粉專',
-      category: '社群與二手面交'
-    }));
-  } catch (err) {
-    console.error('[Facebook Scraper Error]:', err.message);
-    return [];
+    if (titleMatch && linkMatch) {
+      const title = titleMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
+      const rawUrl = linkMatch[1].trim();
+      if (isRelevantTitle(title)) {
+        const id = `facebook_${rawUrl.split('/').pop() || title}`;
+        items.push({
+          id,
+          title: `[FB 社群動態] ${title.replace(/\s*-\s*facebook\.com$/i, '')}`,
+          price: 'FB 最新買賣/討論',
+          url: rawUrl,
+          platform: 'Facebook 社團/粉專',
+          category: '社群與二手面交'
+        });
+      }
+    }
   }
+  return items;
 }
 
 /**
- * Global Beyblade news search fallback
+ * Global Beyblade news search fallback (recent 2 days)
  */
 export async function checkGlobalBeybladeNews() {
-  const url = `https://news.google.com/rss/search?q=${encodeURIComponent('戰鬥陀螺 X 預購 販售 限定 補貨')}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
+  const url = `https://news.google.com/rss/search?q=${encodeURIComponent('戰鬥陀螺 X 預購 販售 限定 補貨 when:2d')}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
   const xml = await fetchText(url);
   if (!xml) return [];
 

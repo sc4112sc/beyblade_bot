@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { createBot } from './bot.js';
 import { createServer } from './server.js';
 import { storage } from './storage.js';
+import { startThreadsMonitor } from './monitors/threads.js';
 
 async function bootstrap() {
   console.log('🚀 Starting Telegram Bot service...');
@@ -25,6 +26,9 @@ async function bootstrap() {
             console.log(`[Telegram Bot] Connected successfully! Bot username: @${info.username}`);
           }
         });
+        
+        // Start monitors
+        startThreadsMonitor(bot);
       }
     } catch (err) {
       console.error('[Telegram Bot] Error initializing bot polling:', err.message);

@@ -65,18 +65,12 @@ export function createBot(token, scheduler = null) {
   bot.command('monitors', async (ctx) => {
     const intervalMins = scheduler?.intervalMinutes || parseInt(process.env.SCAN_INTERVAL_MINUTES || '3', 10);
     const text = 
-      `📡 <b>目前監控平台清單 (戰鬥陀螺 X)</b>\n\n` +
-      `🛍️ <b>電商購物網：</b>\n` +
-      `• momo 購物網\n` +
-      `• 墊腳石購物網\n` +
-      `• 誠品線上\n` +
-      `• 金玉堂購物網\n` +
-      `• 東海模型購物網\n` +
-      `• Toy World 購物網\n\n` +
-      `💬 <b>社群與二手買賣：</b>\n` +
-      `• Threads 關鍵字動態\n` +
-      `• Facebook 社團/粉專貼文\n\n` +
-      `⏱️ <b>掃描頻率：</b> 每 ${intervalMins} 分鐘自動巡檢`;
+      `📡 <b>目前監控與推播三大分類說明 (戰鬥陀螺 X)</b>\n\n` +
+      `推播訊息將自動分類為以下 3 大類型：\n\n` +
+      `1️⃣ 🛍️ <b>[發售]</b>：各大電商（momo、墊腳石、誠品、金玉堂、東海模型、Toy World）現貨上架與新品發售\n` +
+      `2️⃣ 📦 <b>[預購]</b>：全網戰鬥陀螺 X 最新開放預購與賣場動態\n` +
+      `3️⃣ 🤝 <b>[二手/面交]</b>：Threads 與 Facebook 社群玩家即時面交、出清與買賣討論\n\n` +
+      `⏱️ <b>掃描頻率：</b> 每 ${intervalMins} 分鐘自動巡檢全網最新情報`;
 
     await ctx.reply(text, { parse_mode: 'HTML' });
   });

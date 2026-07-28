@@ -3,6 +3,42 @@ import { checkAllSocial } from './monitors/social.js';
 import { historyStorage } from './storageHistory.js';
 import { storage } from './storage.js';
 
+export function classifyItem(item) {
+  const text = `${item.title || ''} ${item.platform || ''} ${item.category || ''} ${item.url || ''}`.toLowerCase();
+  
+  // 1. 預購
+  if (text.includes('預購') || text.includes('預訂') || text.includes('preorder') || text.includes('開訂')) {
+    return {
+      type: '預購',
+      emoji: '📦',
+      tag: '📦 [戰鬥陀螺 X - 預購情報]',
+      priceLabel: '預購/預訂賣場'
+    };
+  }
+  
+  // 2. 二手(面交)
+  if (
+    text.includes('二手') || text.includes('面交') || text.includes('出清') || text.includes('退坑') ||
+    text.includes('競標') || text.includes('收') || text.includes('售') ||
+    text.includes('threads') || text.includes('facebook') || text.includes('fb')
+  ) {
+    return {
+      type: '二手(面交)',
+      emoji: '🤝',
+      tag: '🤝 [戰鬥陀螺 X - 二手/面交]',
+      priceLabel: '社群面交/二手交易'
+    };
+  }
+
+  // 3. 發售 (現貨)
+  return {
+    type: '發售',
+    emoji: '🛍️',
+    tag: '🛍️ [戰鬥陀螺 X - 發售/現貨]',
+    priceLabel: '新品發售/現貨上架'
+  };
+}
+
 export class Scheduler {
   constructor(bot, intervalMinutes = 3) {
     this.bot = bot;
@@ -144,13 +180,14 @@ export class Scheduler {
   }
 
   formatPushMessage(item) {
-    const categoryEmoji = item.category === '電商購物' ? '🛍️' : '💬';
+    const meta = classifyItem(item);
     
     return (
-      `🌀 <b>[戰鬥陀螺 X 第一手動態推播]</b>\n\n` +
+      `${meta.tag}\n\n` +
       `📌 <b>標題：</b> <a href="${item.url}">${escapeHtml(item.title)}</a>\n` +
-      `${categoryEmoji} <b>來源：</b> ${item.platform} (${item.category})\n` +
-      `💰 <b>類型/詳細：</b> <code>${escapeHtml(item.price)}</code>\n\n` +
+      `🏷️ <b>主要類型：</b> <code>${meta.type}</code>\n` +
+      `📡 <b>來源平台：</b> ${item.platform}\n` +
+      `💰 <b>詳細說明：</b> <code>${escapeHtml(item.price || meta.priceLabel)}</code>\n\n` +
       `👉 <a href="${item.url}">點此立即前往商品/貼文頁面</a>`
     );
   }
